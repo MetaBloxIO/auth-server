@@ -943,6 +943,14 @@ httpdSendFile(httpd * server, request * r, const char *path)
 }
 
 void
+httpdSendJson(httpd * server, request * r, const char *json) 
+{
+    strcpy(r->response.contentType, "application/json");
+    _httpd_sendHeaders(r, strlen(json), 0);
+    _httpd_sendText(r, json);
+}
+
+void
 httpdForceAuthenticate(request * r, const char *realm)
 {
     char buffer[255];

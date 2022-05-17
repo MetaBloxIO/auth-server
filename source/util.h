@@ -61,4 +61,8 @@ void icmp_ping(const char *);
 /** @brief Save pid of this wifidog in pid file */
 void save_pid_file(const char *);
 
+
+void bytes_2_hex_string(const unsigned char* bytes, size_t len, char* out);
+void hex_string_2_bytes(const char* hex_string, unsigned char* bytes);
+
 #endif                          /* _UTIL_H_ */

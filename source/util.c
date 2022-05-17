@@ -413,3 +413,21 @@ save_pid_file(const char *pf)
 
     return;
 }
+
+void bytes_2_hex_string(const unsigned char* bytes, size_t len, char* out)
+{
+    for (int i = 0; i < len; i++)
+    {
+        printf("%02x", out[i]);
+    }
+}
+
+void hex_string_2_bytes(const char* hex_string, unsigned char* bytes)
+{
+    const char* ptr = hex_string;
+    for (int i = 0; i < strlen(hex_string) / 2; i++) {
+        sscanf(ptr, "%2hhx", &bytes[i]);
+        ptr += 2;
+    }
+
+}

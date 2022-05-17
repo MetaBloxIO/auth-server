@@ -54,9 +54,21 @@
 #include "centralserver.h"
 #include "util.h"
 #include "wd_util.h"
+#include "cJSON.h"
 
 #include "config.h"
+#include "curl/easy.h"
 
+typedef enum {
+    ERROR_SUCCESS = 0,
+    REQ_PARAM_INVALID = 1,
+    NONCE_INVALID = 2,
+    VP_INVALID = 3,
+    SIGNATURE_INVALID = 4,
+    SERVER_INNER_ERROR = 500,
+} ErrorCode;
+
+static void http_send_error_reponse(int errorCode, httpd *webserver, request * r);
 
 /** The 404 handler is also responsible for redirecting to the auth server */
 void
@@ -199,6 +211,90 @@ http_callback_status(httpd * webserver, request * r)
     free(buf);
     free(status);
 }
+
+void http_send_error_reponse(int errorCode, httpd *webserver, request * r)
+{
+    char buffer[128] = {0};
+    sprintf(buffer, "{\"code\":\"%d\"}", errorCode);
+    httpdSendJson(webserver, r, buffer);
+}
+
+void http_callback_nonce(httpd * webserver, request * r) 
+{
+    cJSON *req_body = cJSON_Parse(r->readBufPtr);
+    if (req_body == NULL) {
+        http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
+        cJSON_free(req_body);
+        return;
+    }
+
+    
+    s_config* config = config_get_config();
+    
+    
+
+    uuid_t uuid = {0};
+    char   uuid_str[33] = {0};
+    uuid_generate(uuid);
+    bytes_2_hex_string(uuid, 16, uuid_str);
+
+    char output[512] = {0};
+    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
+    httpdSendJson(webserver, r, output);
+
+    cJSON_free(req_body);
+}
+
+void http_callback_apply(httpd * webserver, request * r)
+{
+    cJSON *req_body = cJSON_Parse(r->readBufPtr);
+    if (req_body == NULL) {
+        //TODO send error
+    }
+    
+    //TODO  get vp, verify vp, return vp
+
+    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
+    httpdSendJson(webserver, r, output);
+
+    cJSON_free(req_body);
+}
+
+void http_callback_confirm(httpd * webserver, request * r)
+{
+    cJSON *req_body = cJSON_Parse(r->readBufPtr);
+    if (req_body == NULL) {
+        //TODO send error
+    }
+    
+    /*
+    Request Body
+    {
+        "did":  self did,
+        "target":target did,
+        "lastBlockHash": Blockhash,
+        "qulitity": network qulitity, 
+        "signature": signature value
+    }
+    */
+    
+    /*
+     Response Body
+     {
+         "did":  router did,
+         "target": user did,
+         "lastBlockHash": Blockhash，
+         "signature"：signature value
+     }
+    */
+
+    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
+    httpdSendJson(webserver, r, output);
+
+    cJSON_free(req_body);
+}
+
+
 
 /** @brief Convenience function to redirect the web browser to the auth server
  * @param r The request

@@ -411,13 +411,16 @@ _httpd_sendHeaders(request * r, int contentLength, int modTime)
         _httpd_net_write(r->clientSock, tmpBuf, strlen(tmpBuf));
         _httpd_net_write(r->clientSock, "\n", 1);
 
-        _httpd_formatTimeString(timeBuf, modTime);
-        _httpd_net_write(r->clientSock, "Last-Modified: ", 15);
-        _httpd_net_write(r->clientSock, timeBuf, strlen(timeBuf));
-        _httpd_net_write(r->clientSock, "\n", 1);
+        if (time != 0) {
+            _httpd_formatTimeString(timeBuf, modTime);
+            _httpd_net_write(r->clientSock, "Last-Modified: ", 15);
+            _httpd_net_write(r->clientSock, timeBuf, strlen(timeBuf));
+            _httpd_net_write(r->clientSock, "\n", 1);
+        }
     }
     _httpd_net_write(r->clientSock, "\n", 1);
 }
+
 
 httpDir *
 _httpd_findContentDir(server, dir, createFlag)

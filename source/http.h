@@ -42,6 +42,10 @@ void http_callback_auth(httpd *, request *);
 /**@brief Callback for libhttpd, disconnect user from network */
 void http_callback_disconnect(httpd *, request *);
 
+void http_callback_nonce(httpd *, request *);
+void http_callback_apply(httpd *, request *);
+void http_callback_confirm(httpd *, request *);
+
 /** @brief Sends a HTML page to web browser */
 void send_http_page(request *, const char *, const char* );
 

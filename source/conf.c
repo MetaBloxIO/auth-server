@@ -104,6 +104,7 @@ typedef enum {
     oSSLCertPath,
     oSSLAllowedCipherList,
     oSSLUseSNI,
+    oWalletUrl
 } OpCodes;
 
 /** @internal
@@ -151,6 +152,7 @@ static const struct {
     "sslcertpath", oSSLCertPath}, {
     "sslallowedcipherlist", oSSLAllowedCipherList}, {
     "sslusesni", oSSLUseSNI}, {
+    "walletUrl", oWalletUrl}, {
 NULL, oBadOption},};
 
 static void config_notnull(const void *, const char *);
@@ -208,6 +210,7 @@ config_init(void)
     config.ssl_cipher_list = NULL;
     config.arp_table_path = safe_strdup(DEFAULT_ARPTABLE);
     config.ssl_use_sni = DEFAULT_AUTHSERVSSLSNI;
+    config.wallet_url = NULL;
 
     debugconf.log_stderr = 1;
     debugconf.debuglevel = DEFAULT_DEBUGLEVEL;
@@ -809,6 +812,9 @@ config_read(const char *filename)
                     debug(LOG_WARNING, "SSLUseSNI is set but no CyaSSL SNI enabled. Ignoring!");
 #endif
 #endif
+                    break;
+                case oWalletUrl:
+                    config.wallet_url = safe_strdup(p1);
                     break;
                 case oBadOption:
                     /* FALL THROUGH */

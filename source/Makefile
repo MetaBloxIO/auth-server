@@ -4,7 +4,7 @@ CFLAGS := -Wall -Wextra -Wno-unused-parameter -g -O2
 
 DEFINES := -DHAVE_CONFIG_H 
 
-LDFLAGS := -lpthread
+LDFLAGS := -lpthread -luuid
 
 C_SRCS :=   protocol.c \
           api.c \
@@ -29,6 +29,8 @@ C_SRCS :=   protocol.c \
           simple_http.c \
           pstring.c \
           wd_util.c \
+          cJSON.c   \
+          cJSON_Utils.c 
 #          wdctl.c 
 
 OBJECTS := $(patsubst %.c,%.o,$(C_SRCS))
