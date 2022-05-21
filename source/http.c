@@ -262,18 +262,37 @@ void http_callback_nonce(httpd * webserver, request * r)
     res = curl_easy_perform(curl);
     if(res != CURLE_OK) {
         http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
+        curl_easy_cleanup(curl);
         cJSON_free(req_body);
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        return;
     }
- 
-    /* always cleanup */
+
+
     curl_easy_cleanup(curl);
 
-    char output[512] = {0};
-    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
-    httpdSendJson(webserver, r, output);
+    cJSON* auth_resp = cJSON_Parse(response);
+    if (auth_resp == NULL) {
+        http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
+        cJSON_free(req_body);
+        return;
+    }
 
+    cJSON *resp_root = cJSON_CreateObject();
+    cJSON_AddItemToObject(resp_root, "code", cJSON_CreateNumber(cJSON_GetNumberValue(auth_resp, "code")));
+    
+    if (cJSON_GetNumberValue(auth_resp, "code") == 0) {
+        cJSON *data_resp = cJSON_AddObjectToObject(resp_root, "data");
+        cJSON_AddStringToObject(data_resp, "session", uuid_str);
+        cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(auth_resp, "data"), "challenge"));
+    }
+    
+    const char* output = cJSON_Print(resp_root);
+
+    httpdSendJson(webserver, r, output);
+    free(output);
+    cJSON_free(resp_root);
+    cJSON_free(data_resp);
     cJSON_free(req_body);
 }
 
