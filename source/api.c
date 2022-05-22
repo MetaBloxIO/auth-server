@@ -385,6 +385,9 @@ httpdReadRequest(httpd * server, request * r)
      */
     count = 0;
     inHeaders = 1;
+    
+    httpHeader* lastHeader = &r->request.headers;
+
     while (_httpd_readLine(r, buf, HTTP_MAX_LEN) > 0) {
         count++;
 
@@ -469,6 +472,18 @@ httpdReadRequest(httpd * server, request * r)
                     r->request.host[HTTP_MAX_URL - 1] = 0;
                 }
             }
+
+            
+            cp = strchr(buf, ':');
+            
+            httpHeader *currHeader = (httpHeader*)malloc(sizeof(httpHeader));
+            memset(currHeader, 0, sizeof(httpHeader));
+
+            strncpy(currHeader->name, buf, cp - buf);
+            strncpy(currHeader->value, cp + 1, strlen(buf) - (cp - buf) - 1);
+            
+            lastHeader->nextHeader = currHeader;
+            lastHeader = currHeader;
             /* End modification */
             continue;
         }
@@ -491,6 +506,13 @@ httpdReadRequest(httpd * server, request * r)
 void
 httpdEndRequest(request * r)
 {
+    httpHeader* header = r->request.headers.nextHeader;
+    while (header != NULL) {
+        httpHeader* nextHeader = header;
+        free(header);
+        header = nextHeader;
+    }
+
     _httpd_freeVariables(r->variables);
     shutdown(r->clientSock, 2);
     close(r->clientSock);

@@ -226,6 +226,37 @@ static size_t http_wallet_server_data_cb(void *contents, size_t size, size_t nme
     return realsize;
 }
 
+static int send_wallet_url_req(const char* req_path, char* output) 
+{
+    CURL *curl;
+    CURLcode res;
+    curl = curl_easy_init();
+    
+    if (curl == NULL) {
+        return SERVER_INNER_ERROR;
+    }
+
+    s_config* config = config_get_config();    
+
+    char url[256] = {0};
+    sprintf(url, "%s%s", config->wallet_url, req_path);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, http_wallet_server_data_cb);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)output);
+
+    res = curl_easy_perform(curl);
+    if(res != CURLE_OK) {
+        curl_easy_cleanup(curl);
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        return SERVER_INNER_ERROR;
+    }
+
+    curl_easy_cleanup(curl);
+    return 0;
+}
+
 void http_callback_nonce(httpd * webserver, request * r) 
 {
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
@@ -235,8 +266,6 @@ void http_callback_nonce(httpd * webserver, request * r)
         return;
     }
 
-    s_config* config = config_get_config();    
-
     uuid_t uuid = {0};
     char   uuid_str[33] = {0};
     char   response[128] = {0};
@@ -244,32 +273,15 @@ void http_callback_nonce(httpd * webserver, request * r)
     uuid_generate(uuid);
     bytes_2_hex_string(uuid, 16, uuid_str);
     
-    CURL *curl;
-    CURLcode res;
-    curl = curl_easy_init();
-    
-    if (curl == NULL) {
-        http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
+    char   req_path[32] = {0};
+    sprintf(req_path, "/challenge/%s", uuid_str);
+
+    int ret = send_wallet_url_req(req_path, response);
+    if (ret != 0) {
+        http_send_error_reponse(ret, webserver, r);
         cJSON_free(req_body);
         return;
     }
-
-    curl_easy_setopt(curl, CURLOPT_URL, config->wallet_url);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, http_wallet_server_data_cb);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)response);
-
-    res = curl_easy_perform(curl);
-    if(res != CURLE_OK) {
-        http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
-        curl_easy_cleanup(curl);
-        cJSON_free(req_body);
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-        return;
-    }
-
-
-    curl_easy_cleanup(curl);
 
     cJSON* auth_resp = cJSON_Parse(response);
     if (auth_resp == NULL) {
@@ -300,7 +312,9 @@ void http_callback_apply(httpd * webserver, request * r)
 {
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
     if (req_body == NULL) {
-        //TODO send error
+        http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
+        cJSON_free(req_body);
+        return;
     }
     
     //TODO  get vp, verify vp, return vp

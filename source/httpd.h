@@ -91,6 +91,11 @@ extern "C" {
 /***********************************************************************
 ** Type Definitions
 */
+    typedef struct _httpd_header {
+        char name[32];
+        char value[64];
+        struct _httpd_header *nextHeader;
+    } httpHeader;
 
     typedef struct {
         int method, contentLength, authLength;
@@ -99,6 +104,8 @@ extern "C" {
          ifModified[HTTP_MAX_URL];
         char authUser[HTTP_MAX_AUTH];
         char authPassword[HTTP_MAX_AUTH];
+        
+        httpHeader headers;
     } httpReq;
 
     typedef struct _httpd_var {
