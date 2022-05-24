@@ -508,7 +508,7 @@ httpdEndRequest(request * r)
 {
     httpHeader* header = r->request.headers.nextHeader;
     while (header != NULL) {
-        httpHeader* nextHeader = header;
+        httpHeader* nextHeader = header->nextHeader;
         free(header);
         header = nextHeader;
     }
