@@ -4,7 +4,7 @@ CFLAGS := -Wall -Wextra -Wno-unused-parameter -g -O2
 
 DEFINES := -DHAVE_CONFIG_H 
 
-LDFLAGS := -lpthread -luuid
+LDFLAGS := -lpthread -luuid -lcurl
 
 C_SRCS :=   protocol.c \
           api.c \

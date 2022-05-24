@@ -57,7 +57,9 @@
 #include "cJSON.h"
 
 #include "config.h"
+#include "curl/curl.h"
 #include "curl/easy.h"
+#include "uuid/uuid.h"
 
 typedef enum {
     ERROR_SUCCESS = 0,
@@ -222,7 +224,7 @@ void http_send_error_reponse(int errorCode, httpd *webserver, request * r)
 static size_t http_wallet_server_data_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
-    memcpy(userp, contents, 1, realsize);
+    memcpy(userp, contents, realsize);
     return realsize;
 }
 
@@ -248,8 +250,8 @@ static int send_wallet_url_req(const char* req_path, char* output, char* post_da
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
     }
 
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, http_wallet_server_data_cb);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)output);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_wallet_server_data_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)output);
     
     va_list header_args;
     struct curl_slist *header_list = NULL;               
@@ -271,7 +273,7 @@ static int send_wallet_url_req(const char* req_path, char* output, char* post_da
     }
 
     curl_easy_cleanup(curl);
-    curl_slist_free_all(list);
+    curl_slist_free_all(header_list);
     return 0;
 }
 
@@ -324,12 +326,12 @@ void http_callback_nonce(httpd * webserver, request * r)
     }
 
     cJSON *resp_root = cJSON_CreateObject();
-    cJSON_AddItemToObject(resp_root, "code", cJSON_CreateNumber(cJSON_GetNumberValue(auth_resp, "code")));
+    cJSON_AddItemToObject(resp_root, "code", cJSON_CreateNumber(cJSON_GetNumberValue(cJSON_GetObjectItem(auth_resp, "code"))));
     
-    if (cJSON_GetNumberValue(auth_resp, "code") == 0) {
+    if (cJSON_GetNumberValue(cJSON_GetObjectItem(auth_resp, "code")) == 0) {
         cJSON *data_resp = cJSON_AddObjectToObject(resp_root, "data");
         cJSON_AddStringToObject(data_resp, "session", uuid_str);
-        cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(auth_resp, "data"), "challenge"));
+        cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(auth_resp, "data"), "challenge")));
     }
     const char* output = cJSON_Print(resp_root);
 
