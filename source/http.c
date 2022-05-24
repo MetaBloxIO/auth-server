@@ -226,7 +226,7 @@ static size_t http_wallet_server_data_cb(void *contents, size_t size, size_t nme
     return realsize;
 }
 
-static int send_wallet_url_req(const char* req_path, char* output) 
+static int send_wallet_url_req(const char* req_path, char* output, char* post_data, ...) 
 {
     CURL *curl;
     CURLcode res;
@@ -243,8 +243,25 @@ static int send_wallet_url_req(const char* req_path, char* output)
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    if (post_data != NULL) {
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
+    }
+
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, http_wallet_server_data_cb);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)output);
+    
+    va_list header_args;
+    struct curl_slist *header_list = NULL;               
+    va_start (header_args, post_data);
+    
+    char *header = va_arg(header_args, char *);
+    while (header != NULL) {
+        header_list = curl_slist_append(header_list, header);
+        header = va_arg(header_args, char *);
+    }
+    va_end(header_args);
+     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);    
 
     res = curl_easy_perform(curl);
     if(res != CURLE_OK) {
@@ -254,7 +271,23 @@ static int send_wallet_url_req(const char* req_path, char* output)
     }
 
     curl_easy_cleanup(curl);
+    curl_slist_free_all(list);
     return 0;
+}
+
+static int get_header(request * r, const char* key, char* output) 
+{
+    httpHeader* header = &r->request.headers;
+    while (header != NULL) {
+        if (strcmp(header->name, key) == 0)
+        {
+            sprintf("%s: %s", header->name, header->value);
+            return 0;
+        }
+
+        header = header->nextHeader;
+    }
+    return 1;
 }
 
 void http_callback_nonce(httpd * webserver, request * r) 
@@ -276,7 +309,7 @@ void http_callback_nonce(httpd * webserver, request * r)
     char   req_path[32] = {0};
     sprintf(req_path, "/challenge/%s", uuid_str);
 
-    int ret = send_wallet_url_req(req_path, response);
+    int ret = send_wallet_url_req(req_path, response, r->readBufPtr, "Content-Type: application/json", NULL);
     if (ret != 0) {
         http_send_error_reponse(ret, webserver, r);
         cJSON_free(req_body);
@@ -298,13 +331,11 @@ void http_callback_nonce(httpd * webserver, request * r)
         cJSON_AddStringToObject(data_resp, "session", uuid_str);
         cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(auth_resp, "data"), "challenge"));
     }
-    
     const char* output = cJSON_Print(resp_root);
 
     httpdSendJson(webserver, r, output);
     free(output);
     cJSON_free(resp_root);
-    cJSON_free(data_resp);
     cJSON_free(req_body);
 }
 
@@ -315,13 +346,20 @@ void http_callback_apply(httpd * webserver, request * r)
         http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
         cJSON_free(req_body);
         return;
-    }
+    }    
     
-    //TODO  get vp, verify vp, return vp
+    char session_header[128] = {0};
+    char response[2048] = {0};
+    get_header(r, "session", session_header);
+    
+    int ret = send_wallet_url_req("/verifyVp", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
+    if (ret != 0) {
+        http_send_error_reponse(ret, webserver, r);
+        cJSON_free(req_body);
+        return;
+    }
 
-    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
-    httpdSendJson(webserver, r, output);
-
+    httpdSendJson(webserver, r, response);
     cJSON_free(req_body);
 }
 
@@ -329,33 +367,23 @@ void http_callback_confirm(httpd * webserver, request * r)
 {
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
     if (req_body == NULL) {
-        //TODO send error
+        http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
+        cJSON_free(req_body);
+        return;
     }
     
-    /*
-    Request Body
-    {
-        "did":  self did,
-        "target":target did,
-        "lastBlockHash": Blockhash,
-        "qulitity": network qulitity, 
-        "signature": signature value
-    }
-    */
+    char session_header[128] = {0};
+    char response[2048] = {0};
+    get_header(r, "session", session_header);
     
-    /*
-     Response Body
-     {
-         "did":  router did,
-         "target": user did,
-         "lastBlockHash": Blockhash，
-         "signature"：signature value
-     }
-    */
+    int ret = send_wallet_url_req("/confirmNetwork", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
+    if (ret != 0) {
+        http_send_error_reponse(ret, webserver, r);
+        cJSON_free(req_body);
+        return;
+    }
 
-    sprintf("{\"session\":\"%s\", \"nonce\":\"123\"}", uuid_str);
-    httpdSendJson(webserver, r, output);
-
+    httpdSendJson(webserver, r, response);
     cJSON_free(req_body);
 }
 
