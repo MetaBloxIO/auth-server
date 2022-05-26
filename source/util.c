@@ -418,7 +418,7 @@ void bytes_2_hex_string(const unsigned char* bytes, size_t len, char* out)
 {
     for (int i = 0; i < len; i++)
     {
-        printf("%02x", out[i]);
+        sprintf(out + i * 2, "%02x", bytes[i]);
     }
 }
 

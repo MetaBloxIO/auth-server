@@ -242,6 +242,7 @@ static int send_wallet_url_req(const char* req_path, char* output, char* post_da
 
     char url[256] = {0};
     sprintf(url, "%s%s", config->wallet_url, req_path);
+    debug(LOG_INFO, "Send wallet url %s\n", url);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -308,7 +309,8 @@ void http_callback_nonce(httpd * webserver, request * r)
     uuid_generate(uuid);
     bytes_2_hex_string(uuid, 16, uuid_str);
     
-    char   req_path[32] = {0};
+    debug(LOG_INFO, "uuid_str %s\n", uuid_str);
+    char   req_path[64] = {0};
     sprintf(req_path, "/challenge/%s", uuid_str);
 
     int ret = send_wallet_url_req(req_path, response, r->readBufPtr, "Content-Type: application/json", NULL);
@@ -331,7 +333,7 @@ void http_callback_nonce(httpd * webserver, request * r)
     if (cJSON_GetNumberValue(cJSON_GetObjectItem(auth_resp, "code")) == 0) {
         cJSON *data_resp = cJSON_AddObjectToObject(resp_root, "data");
         cJSON_AddStringToObject(data_resp, "session", uuid_str);
-        cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(auth_resp, "data"), "challenge")));
+        cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(auth_resp, "data")));
     }
     const char* output = cJSON_Print(resp_root);
 
