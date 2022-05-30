@@ -284,7 +284,7 @@ static int get_header(request * r, const char* key, char* output)
     while (header != NULL) {
         if (strcmp(header->name, key) == 0)
         {
-            sprintf("%s: %s", header->name, header->value);
+            sprintf(output, "%s:%s", header->name, header->value);
             return 0;
         }
 
@@ -298,7 +298,6 @@ void http_callback_nonce(httpd * webserver, request * r)
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
     if (req_body == NULL) {
         http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
-        cJSON_free(req_body);
         return;
     }
 
@@ -316,14 +315,14 @@ void http_callback_nonce(httpd * webserver, request * r)
     int ret = send_wallet_url_req(req_path, response, r->readBufPtr, "Content-Type: application/json", NULL);
     if (ret != 0) {
         http_send_error_reponse(ret, webserver, r);
-        cJSON_free(req_body);
+        cJSON_Delete(req_body);
         return;
     }
 
     cJSON* auth_resp = cJSON_Parse(response);
     if (auth_resp == NULL) {
         http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
-        cJSON_free(req_body);
+        cJSON_Delete(req_body);
         return;
     }
 
@@ -335,12 +334,11 @@ void http_callback_nonce(httpd * webserver, request * r)
         cJSON_AddStringToObject(data_resp, "session", uuid_str);
         cJSON_AddStringToObject(data_resp, "challenge", cJSON_GetStringValue(cJSON_GetObjectItem(auth_resp, "data")));
     }
-    const char* output = cJSON_Print(resp_root);
-
+    char* output = cJSON_Print(resp_root);
     httpdSendJson(webserver, r, output);
-    free(output);
-    cJSON_free(resp_root);
-    cJSON_free(req_body);
+    cJSON_free(output);
+    cJSON_Delete(resp_root);
+    cJSON_Delete(req_body);
 }
 
 void http_callback_apply(httpd * webserver, request * r)
@@ -348,23 +346,23 @@ void http_callback_apply(httpd * webserver, request * r)
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
     if (req_body == NULL) {
         http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
-        cJSON_free(req_body);
         return;
     }    
     
     char session_header[128] = {0};
-    char response[2048] = {0};
+    char response[4096] = {0};
     get_header(r, "session", session_header);
     
+    printf("Session=%s\n", session_header);
     int ret = send_wallet_url_req("/verifyVp", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
     if (ret != 0) {
         http_send_error_reponse(ret, webserver, r);
-        cJSON_free(req_body);
+        cJSON_Delete(req_body);
         return;
     }
 
     httpdSendJson(webserver, r, response);
-    cJSON_free(req_body);
+    cJSON_Delete(req_body);
 }
 
 void http_callback_confirm(httpd * webserver, request * r)
@@ -372,7 +370,7 @@ void http_callback_confirm(httpd * webserver, request * r)
     cJSON *req_body = cJSON_Parse(r->readBufPtr);
     if (req_body == NULL) {
         http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
-        cJSON_free(req_body);
+        cJSON_Delete(req_body);
         return;
     }
     
@@ -383,12 +381,12 @@ void http_callback_confirm(httpd * webserver, request * r)
     int ret = send_wallet_url_req("/confirmNetwork", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
     if (ret != 0) {
         http_send_error_reponse(ret, webserver, r);
-        cJSON_free(req_body);
+        cJSON_Delete(req_body);
         return;
     }
 
     httpdSendJson(webserver, r, response);
-    cJSON_free(req_body);
+    cJSON_Delete(req_body);
 }
 
 
