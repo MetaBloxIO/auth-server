@@ -92,8 +92,8 @@ extern "C" {
 ** Type Definitions
 */
     typedef struct _httpd_header {
-        char name[32];
-        char value[64];
+        char name[128];
+        char value[256];
         struct _httpd_header *nextHeader;
     } httpHeader;
 

@@ -26,9 +26,11 @@
  */
 
 #include "gateway.h"
-
+#include <signal.h>
 int
 main(int argc, char **argv)
 {
+
+	signal(SIGPIPE, SIG_IGN);
     return gw_main(argc, argv);
 }
