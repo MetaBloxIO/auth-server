@@ -36,6 +36,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <errno.h>
 #endif
 
 #include "config.h"
@@ -482,7 +483,7 @@ httpdReadRequest(httpd * server, request * r)
             strncpy(currHeader->name, buf, cp - buf);
             strncpy(currHeader->value, cp + 1, strlen(buf) - (cp - buf) - 1);
 
-            if (strnicmp(currHeader->name, "Content-Length", 15) == 0) 
+            if (strncasecmp(currHeader->name, "Content-Length", 15) == 0) 
 			{
 				sscanf(currHeader->value, "%d", &contentLength);
 			}
