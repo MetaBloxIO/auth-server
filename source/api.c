@@ -368,7 +368,7 @@ int
 httpdReadRequest(httpd * server, request * r)
 {
     char buf[HTTP_MAX_LEN];
-    int count, inHeaders;
+    int count, inHeaders, contentLength;
     char *cp, *cp2;
     int _httpd_decode();
 
@@ -481,6 +481,11 @@ httpdReadRequest(httpd * server, request * r)
 
             strncpy(currHeader->name, buf, cp - buf);
             strncpy(currHeader->value, cp + 1, strlen(buf) - (cp - buf) - 1);
+
+            if (strnicmp(currHeader->name, "Content-Length", 15) == 0) 
+			{
+				sscanf(currHeader->value, "%d", &contentLength);
+			}
             
             lastHeader->nextHeader = currHeader;
             lastHeader = currHeader;
@@ -499,6 +504,29 @@ httpdReadRequest(httpd * server, request * r)
         r->request.query[sizeof(r->request.query) - 1] = 0;
         _httpd_storeData(r, cp);
     }
+
+    /* 
+    Read remain bytes
+    */
+    if (contentLength > r->readBufRemain) {
+		int leftLength = contentLength - r->readBufRemain;
+		while (leftLength > 0) {
+			int length = _httpd_net_read(r->clientSock, r->readBufPtr + r->readBufRemain, leftLength);
+			if (length < 0) {
+#ifndef _WIN32
+				if (length == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+					continue;
+				}
+#endif // !_WIN32
+				break;
+			}
+			else {
+				leftLength -= length;
+				r->readBufRemain += length;
+			}
+		}
+	}
+
 
     return (0);
 }
