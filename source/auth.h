@@ -59,6 +59,8 @@ void logout_client(t_client *);
 /** @brief Authenticate a single client against the central server */
 void authenticate_client(request *);
 
+void vp_authenticate_client(request *, int error);
+
 /** @brief Periodically check if connections expired */
 void thread_client_timeout_check(const void *arg);
 

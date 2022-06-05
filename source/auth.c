@@ -98,7 +98,7 @@ logout_client(t_client * client)
     const s_config *config = config_get_config();
     fw_deny(client);
     client_list_remove(client);
-
+#if 0
     /* Advertise the logout if we have an auth server */
     if (config->auth_servers != NULL) {
         UNLOCK_CLIENT_LIST();
@@ -110,9 +110,10 @@ logout_client(t_client * client)
             debug(LOG_WARNING, "Auth server error when reporting logout");
         LOCK_CLIENT_LIST();
     }
-
+#endif
     client_free_node(client);
 }
+
 
 /** Authenticates a single client against the central server and returns when done
  * Alters the firewall rules depending on what the auth server says
@@ -246,6 +247,60 @@ authenticate_client(request * r)
         send_http_page(r, "Internal Error", "We can not validate your request at this time");
         break;
 
+    }
+
+    UNLOCK_CLIENT_LIST();
+    return;
+}
+
+
+void vp_authenticate_client(request *r, int error) {
+    t_client *client, *tmp;
+    s_config *config = NULL;
+    
+    LOCK_CLIENT_LIST();
+
+    client = client_dup(client_list_find_by_ip(r->clientAddr));
+
+    UNLOCK_CLIENT_LIST();
+
+    if (client == NULL) {
+        debug(LOG_ERR, "authenticate_client(): Could not find client for %s", r->clientAddr);
+        return;
+    }
+
+    LOCK_CLIENT_LIST();
+
+    /* can't trust the client to still exist after n seconds have passed */
+    tmp = client_list_find_by_client(client);
+
+    if (NULL == tmp) {
+        debug(LOG_ERR, "authenticate_client(): Could not find client node for %s (%s)", client->ip, client->mac);
+        UNLOCK_CLIENT_LIST();
+        client_list_destroy(client);    /* Free the cloned client */
+        return;
+    }
+
+    client_list_destroy(client);        /* Free the cloned client */
+    client = tmp;
+
+    /* Prepare some variables we'll need below */
+    config = config_get_config();
+    
+    switch (error) {
+
+    case 0:
+        debug(LOG_INFO, "Got VALIDATION from central server authenticating token %s from %s at %s"
+              "- adding to firewall and redirecting them to activate message", client->token, client->ip, client->mac);
+        fw_allow(client, FW_MARK_PROBATION);
+        break;
+
+    default:
+        debug(LOG_INFO,
+              "Got DENIED from central server authenticating token %s from %s at %s - deleting from firewall and redirecting them to denied message",
+              client->token, client->ip, client->mac);
+        fw_deny(client);
+        break;
     }
 
     UNLOCK_CLIENT_LIST();

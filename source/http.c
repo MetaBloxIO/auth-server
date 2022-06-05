@@ -356,11 +356,13 @@ void http_callback_apply(httpd * webserver, request * r)
     printf("Session=%s\n", session_header);
     int ret = send_wallet_url_req("/verifyVp", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
     if (ret != 0) {
+        http_enable_network_access(r, 1);
         http_send_error_reponse(ret, webserver, r);
         cJSON_Delete(req_body);
         return;
     }
 
+    http_enable_network_access(r, 0);
     httpdSendJson(webserver, r, response);
     cJSON_Delete(req_body);
 }
@@ -476,6 +478,28 @@ http_callback_auth(httpd * webserver, request * r)
     } else {
         /* They did not supply variable "token" */
         send_http_page(r, "WiFiDog error", "Invalid token");
+    }
+}
+
+void http_enable_network_access(request * r, int error) {
+    t_client *client;
+    char *mac;
+    
+    /* They supplied variable "token" */
+    if (!(mac = arp_get(r->clientAddr))) {
+        /* We could not get their MAC address */
+        debug(LOG_ERR, "Failed to retrieve MAC address for ip %s", r->clientAddr);
+    } else {
+        /* We have their MAC address */
+        LOCK_CLIENT_LIST();
+        if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
+            debug(LOG_DEBUG, "New client for %s", r->clientAddr);
+        } else {
+            debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
+        }
+        UNLOCK_CLIENT_LIST();
+        vp_authenticate_client(r, error);
+        free(mac);
     }
 }
 
