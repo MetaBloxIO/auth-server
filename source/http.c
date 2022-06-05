@@ -494,6 +494,7 @@ void http_enable_network_access(request * r, int error) {
         LOCK_CLIENT_LIST();
         if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
             debug(LOG_DEBUG, "New client for %s", r->clientAddr);
+            client_list_add(r->clientAddr, mac, "123");
         } else {
             debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
         }
