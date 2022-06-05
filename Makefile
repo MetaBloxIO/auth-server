@@ -19,6 +19,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/auth_server
   SECTION:=auth_server
   CATEGORY:=wifi
+  DEPENDS := +libuuid +libcurl
   TITLE:=WiFi Portal
 endef
 
