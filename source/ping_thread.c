@@ -113,6 +113,8 @@ ping(void)
      * working. Merely that there is a web server listening at the port. And that
      * is done by connect_auth_server() internally.
      */
+    mark_auth_online();
+#if 0
     sockfd = connect_auth_server();
     if (sockfd == -1) {
         /*
@@ -203,4 +205,5 @@ ping(void)
         free(res);
     }
     return;
+#endif 
 }
