@@ -379,7 +379,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
         return;
     }
 
-    debug(LOG_DEBUG, "Adding %s:%d (SSL: %d) %s to the auth server list", host, http_port, ssl_port, path);
+    debug(LOG_INFO, "Adding %s:%d (SSL: %d) %s to the auth server list", host, http_port, ssl_port, path);
 
     /* Allocate memory */
     new = safe_malloc(sizeof(t_auth_serv));
@@ -404,7 +404,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
         tmp->next = new;
     }
 
-    debug(LOG_DEBUG, "Auth server added");
+    debug(LOG_INFO, "Auth server added");
 }
 
 /**

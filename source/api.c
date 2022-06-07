@@ -476,7 +476,7 @@ httpdReadRequest(httpd * server, request * r)
 
             
             cp = strchr(buf, ':');
-            if (p - buf >= 128) {
+            if (cp - buf >= 128) {
                 continue;
             }
 

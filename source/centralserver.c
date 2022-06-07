@@ -184,6 +184,8 @@ _connect_auth_server(int level)
     struct sockaddr_in their_addr;
     int sockfd;
 
+    debug(LOG_INFO, "Enter connect to auth server");
+
     /* If there are no auth servers, error out, from scan-build warning. */
     if (NULL == config->auth_servers) {
         return (-1);

@@ -263,6 +263,8 @@ fw_sync_with_authserver(void)
         debug(LOG_ERR, "Could not get counters from firewall!");
         return;
     }
+    
+    debug(LOG_ERR, "Enter fw_sync_with_authserver");
 
     LOCK_CLIENT_LIST();
 
