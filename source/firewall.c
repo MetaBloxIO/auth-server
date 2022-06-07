@@ -386,3 +386,59 @@ fw_sync_with_authserver(void)
 
     client_list_destroy(worklist);
 }
+
+void vp_fw_sync_with_authserver(void)
+{
+    t_authresponse authresponse;
+    t_client *p1, *p2, *worklist, *tmp;
+    s_config *config = config_get_config();
+
+    if (-1 == iptables_fw_counters_update()) {
+        debug(LOG_ERR, "Could not get counters from firewall!");
+        return;
+    }
+    
+    debug(LOG_ERR, "Enter vp_fw_sync_with_authserver");
+
+    LOCK_CLIENT_LIST();
+
+    /* XXX Ideally, from a thread safety PoV, this function should build a list of client pointers,
+     * iterate over the list and have an explicit "client still valid" check while list is locked.
+     * That way clients can disappear during the cycle with no risk of trashing the heap or getting
+     * a SIGSEGV.
+     */
+    client_list_dup(&worklist);
+    UNLOCK_CLIENT_LIST();
+
+    for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
+        p2 = p1->next;
+
+        /* Ping the client, if he responds it'll keep activity on the link.
+         * However, if the firewall blocks it, it will not help.  The suggested
+         * way to deal witht his is to keep the DHCP lease time extremely
+         * short:  Shorter than config->checkinterval * config->clienttimeout */
+        icmp_ping(p1->ip);
+
+        time_t current_time = time(NULL);
+        debug(LOG_INFO,
+              "Checking client %s for timeout:  Last updated %ld (%ld seconds ago), timeout delay %ld seconds, current time %ld, ",
+              p1->ip, p1->counters.last_updated, current_time - p1->counters.last_updated,
+              config->checkinterval * config->clienttimeout, current_time);
+        if (p1->counters.last_updated + (config->checkinterval * config->clienttimeout) <= current_time) {
+            /* Timing out user */
+            debug(LOG_INFO, "%s - Inactive for more than %ld seconds, removing client and denying in firewall",
+                  p1->ip, config->checkinterval * config->clienttimeout);
+            LOCK_CLIENT_LIST();
+            tmp = client_list_find_by_client(p1);
+            if (NULL != tmp) {
+                logout_client(tmp);
+            } else {
+                debug(LOG_NOTICE, "Client was already removed. Not logging out.");
+            }
+            UNLOCK_CLIENT_LIST();
+        }
+    }
+
+    client_list_destroy(worklist);
+}
+

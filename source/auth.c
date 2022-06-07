@@ -79,6 +79,7 @@ thread_client_timeout_check(const void *arg)
         debug(LOG_DEBUG, "Running fw_counter()");
 
         //fw_sync_with_authserver();
+        vp_fw_sync_with_authserver();
     }
 }
 

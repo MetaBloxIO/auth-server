@@ -70,6 +70,8 @@ int fw_set_authup(void);
 /** @brief Refreshes the entire client list */
 void fw_sync_with_authserver(void);
 
+void vp_fw_sync_with_authserver(void);
+
 /** @brief Get an IP's MAC address from the ARP cache.*/
 char *arp_get(const char *);
 
