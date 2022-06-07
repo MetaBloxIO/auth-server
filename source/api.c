@@ -476,7 +476,14 @@ httpdReadRequest(httpd * server, request * r)
 
             
             cp = strchr(buf, ':');
-            
+            if (p - buf >= 128) {
+                continue;
+            }
+
+            if (strlen(buf) - (cp - buf) - 1 >= 256) {
+                continue;
+            }
+
             httpHeader *currHeader = (httpHeader*)malloc(sizeof(httpHeader));
             memset(currHeader, 0, sizeof(httpHeader));
 
