@@ -32,7 +32,7 @@ endef
 # The last command is necessary to ensure our preparation instructions remain compatible with the patching system.
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	cp $(SOURCE_DIR)/* $(PKG_BUILD_DIR)
+	cp -r $(SOURCE_DIR)/* $(PKG_BUILD_DIR)
 	$(Build/Patch)
 endef
 
