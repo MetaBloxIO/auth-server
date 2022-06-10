@@ -643,6 +643,7 @@ iptables_fw_counters_update(void)
     /* Look for outgoing traffic */
     safe_asprintf(&script, "%s %s", "iptables", "-v -n -x -t mangle -L " CHAIN_OUTGOING);
     iptables_insert_gateway_id(&script);
+    printf("iptables scripts %s\n", script);
     output = popen(script, "r");
     free(script);
     if (!output) {
@@ -650,6 +651,8 @@ iptables_fw_counters_update(void)
         return -1;
     }
 
+    //Add for debug
+    return 1;
     /* skip the first two lines */
     while (('\n' != fgetc(output)) && !feof(output)) ;
     while (('\n' != fgetc(output)) && !feof(output)) ;
