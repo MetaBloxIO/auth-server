@@ -635,7 +635,7 @@ int
 iptables_fw_counters_update(void)
 {
     FILE *output;
-    char *script, ip[16], rc;
+    char *script, ip[16];
     unsigned long long int counter;
     t_client *p1;
     struct in_addr tempaddr;
@@ -651,15 +651,34 @@ iptables_fw_counters_update(void)
         return -1;
     }
 
-    //Add for debug
-    return 1;
     /* skip the first two lines */
     while (('\n' != fgetc(output)) && !feof(output)) ;
     while (('\n' != fgetc(output)) && !feof(output)) ;
     while (output && !(feof(output))) {
-        rc = fscanf(output, "%*s %llu %*s %*s %*s %*s %*s %15[0-9.] %*s %*s %*s %*s %*s %*s", &counter, ip);
-        //rc = fscanf(output, "%*s %llu %*s %*s %*s %*s %*s %15[0-9.] %*s %*s %*s %*s %*s 0x%*u", &counter, ip);
-        if (2 == rc && EOF != rc) {
+        char line[164] = {0};
+        fgets(line, 164, output);
+        char* token = strtok(line, " \t");
+        int index = 0;
+        while (token != NULL)
+        {
+            switch (index)
+            {
+            case 1:
+                sscanf(token, "%llu", &counter);
+                break;
+
+            case 7:
+                sscanf(token, "%s", ip);
+                break;
+
+            default:
+                break;
+            }
+
+            index++;
+            token = strtok(NULL, " \t");
+        }
+        if (index >= 13)  {
             /* Sanity */
             if (!inet_aton(ip, &tempaddr)) {
                 debug(LOG_WARNING, "I was supposed to read an IP address but instead got [%s] - ignoring it", ip);
@@ -703,8 +722,31 @@ iptables_fw_counters_update(void)
     while (('\n' != fgetc(output)) && !feof(output)) ;
     while (('\n' != fgetc(output)) && !feof(output)) ;
     while (output && !(feof(output))) {
-        rc = fscanf(output, "%*s %llu %*s %*s %*s %*s %*s %*s %15[0-9.]", &counter, ip);
-        if (2 == rc && EOF != rc) {
+        char line[164] = {0};
+        fgets(line, 164, output);
+
+        char* token = strtok(line, " \t");
+        int index = 0;
+        while (token != NULL)
+        {
+            switch (index)
+            {
+            case 1:
+                sscanf(token, "%llu", &counter);
+                break;
+
+            case 8:
+                sscanf(token, "%s", ip);
+                break;
+
+            default:
+                break;
+            }
+
+            index++;
+            token = strtok(NULL, " \t");
+        }
+        if (index >= 9) {
             /* Sanity */
             if (!inet_aton(ip, &tempaddr)) {
                 debug(LOG_WARNING, "I was supposed to read an IP address but instead got [%s] - ignoring it", ip);
