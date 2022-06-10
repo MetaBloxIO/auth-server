@@ -224,7 +224,9 @@ void http_send_error_reponse(int errorCode, httpd *webserver, request * r)
 static size_t http_wallet_server_data_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
-    memcpy(userp, contents, realsize);
+    char *start_pos = (char*)userp;
+    start_pos = start_pos + strlen(start_pos);
+    memcpy(start_pos, contents, realsize);
     return realsize;
 }
 
