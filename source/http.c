@@ -351,20 +351,40 @@ void http_callback_apply(httpd * webserver, request * r)
     
     char session_header[128] = {0};
     char response[4096] = {0};
-    get_header(r, "session", session_header);
+    int result = get_header(r, "session", session_header);
+    if (result != 0) {
+        http_send_error_reponse(REQ_PARAM_INVALID, webserver, r);
+        cJSON_Delete(req_body);
+        return;
+    }
     
-    printf("Session=%s\n", session_header);
+    const char* session =  session_header + strlen("session: ");
+    
     int ret = send_wallet_url_req("/verifyVp", response, r->readBufPtr, session_header, "Content-Type: application/json", NULL);
     if (ret != 0) {
-        http_enable_network_access(r, 1);
+        http_enable_network_access(r, 1, session);
         http_send_error_reponse(ret, webserver, r);
         cJSON_Delete(req_body);
         return;
     }
+    
+    cJSON *resp_body = cJSON_Parse(response);
+    if (resp_body == NULL) {
+        http_enable_network_access(r, 1, session);
+        http_send_error_reponse(SERVER_INNER_ERROR, webserver, r);
+        cJSON_Delete(req_body);
+        return;
+    }
+    
+    if (cJSON_GetNumberValue(cJSON_GetObjectItem(resp_body, "code")) != 0) {
+        http_enable_network_access(r, 1, session);
+    } else {
+        http_enable_network_access(r, 0,  session);
+    }
 
-    http_enable_network_access(r, 0);
     httpdSendJson(webserver, r, response);
     cJSON_Delete(req_body);
+    cJSON_Delete(resp_body);
 }
 
 void http_callback_confirm(httpd * webserver, request * r)
@@ -481,7 +501,7 @@ http_callback_auth(httpd * webserver, request * r)
     }
 }
 
-void http_enable_network_access(request * r, int error) {
+void http_enable_network_access(request * r, int error, const char* session) {
     t_client *client;
     char *mac;
     
@@ -494,7 +514,7 @@ void http_enable_network_access(request * r, int error) {
         LOCK_CLIENT_LIST();
         if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
             debug(LOG_DEBUG, "New client for %s", r->clientAddr);
-            client_list_add(r->clientAddr, mac, "123");
+            client_list_add(r->clientAddr, mac, session);
         } else {
             debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
         }

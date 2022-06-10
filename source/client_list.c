@@ -363,6 +363,7 @@ void
 client_list_remove(t_client * client)
 {
     t_client *ptr;
+    debug(LOG_INFO, "Remove client from linked list: IP: %s Token: %s", client->ip, client->token);
 
     ptr = firstclient;
 

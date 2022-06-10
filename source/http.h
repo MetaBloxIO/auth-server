@@ -45,7 +45,7 @@ void http_callback_disconnect(httpd *, request *);
 void http_callback_nonce(httpd *, request *);
 void http_callback_apply(httpd *, request *);
 void http_callback_confirm(httpd *, request *);
-void http_enable_network_access(request *r, int error);
+void http_enable_network_access(request *r, int error, const char* session);
 
 /** @brief Sends a HTML page to web browser */
 void send_http_page(request *, const char *, const char* );
