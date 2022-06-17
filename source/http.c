@@ -515,10 +515,10 @@ void http_enable_network_access(request * r, int error, const char* session) {
         /* We have their MAC address */
         LOCK_CLIENT_LIST();
         if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
-            debug(LOG_DEBUG, "New client for %s", r->clientAddr);
+            debug(LOG_INFO, "New client for %s %s %s", client->ip, r->clientAddr, mac);
             client_list_add(r->clientAddr, mac, session);
         } else {
-            debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
+            debug(LOG_INFO, "Client for %s is already in the client list", client->ip);
         }
         UNLOCK_CLIENT_LIST();
         vp_authenticate_client(r, error);
